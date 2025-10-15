@@ -15,7 +15,7 @@ export function Input({
         <div>
             <label
                 htmlFor={id}
-                className="block text-sm font-medium text-slate-700 mb-2"
+                className="block text-sm font-medium text-slate-100 mb-2"
             >
                 {label}
             </label>
@@ -26,7 +26,7 @@ export function Input({
                 onChange={onChange}
                 placeholder={placeholder}
                 required={required}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all"
+                className="text-white w-full text-sm flex items-center px-4 py-2 bg-slate-600 border-3 border-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all"
             />
         </div>
     )
