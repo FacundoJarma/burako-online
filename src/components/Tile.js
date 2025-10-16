@@ -1,19 +1,6 @@
 import React from "react";
+import * as motion from "motion/react-client"
 
-/**
- * Tile
- * Props:
- * - index: number
- * - card: object | null
- * - isSelected: boolean
- * - isDragOver: boolean
- * - draggable: boolean
- * - onDragStart(e): handler
- * - onDragEnd(e): handler
- * - onDragOver(e): handler
- * - onDrop(e): handler
- * - onClick(): handler
- */
 export default function Tile({
     index,
     card,
@@ -25,6 +12,7 @@ export default function Tile({
     onDragOver,
     onDrop,
     onClick,
+    size = "normal"
 }) {
     const colorClasses = {
         red: "text-red-700",
@@ -50,7 +38,15 @@ export default function Tile({
     const dragOverCls = isDragOver ? "ring-2 ring-sky-400" : "";
 
     return (
-        <div
+
+        <motion.div
+            initial={{ opacity: 0, scale: 0 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={card && {
+
+                duration: 0.4,
+                scale: { type: "spring", visualDuration: 0.4, bounce: 0.5 },
+            }}
             key={card ? card._uid : `empty-${index}`}
             data-hand-slot={index}
             draggable={!isEmpty && draggable}
@@ -61,10 +57,11 @@ export default function Tile({
             onClick={() => onClick && onClick(index)}
             title={title}
             aria-label={title}
-            className={`w-7 --font-lexend-sans flex justify-center items-center  h-10 text-lg font-bold rounded-sm select-none  bg-[#eddbaf] ${baseCls} ${isEmpty ? "opacity-40" : "cursor-grab"
-                } ${selectionCls} ${dragOverCls}`}
+            className={` --font-lexend-sans flex justify-center items-center  font-bold rounded-sm 
+                select-none  bg-[#eddbaf]  ${baseCls} ${isEmpty ? "opacity-40" : "cursor-grab"
+                } ${selectionCls} ${dragOverCls} ${size == "normal" ? "w-7 h-10 text-lg" : size == "small" && "w-5 h-8 text-base"}  `}
         >
             {display}
-        </div>
+        </motion.div>
     );
 }

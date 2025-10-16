@@ -1,10 +1,13 @@
 import React from 'react'
 import Tile from './Tile'
-
+import * as motion from "motion/react-client"
 function DiscardPile({ discardPile, turnStep, isMyTurn, handleDraw, handleDiscard }) {
 
     return (
-        <div className='perspective-midrange'>
+        <motion.div
+            whileHover={{ scale: 1.1 }
+            }
+            whileTap={{ scale: 0.8 }} className='perspective-midrange'>
             <button
 
                 className={`
@@ -25,7 +28,7 @@ function DiscardPile({ discardPile, turnStep, isMyTurn, handleDraw, handleDiscar
                 }
             </button>
 
-        </div >
+        </motion.div>
     )
 }
 

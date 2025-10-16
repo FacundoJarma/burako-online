@@ -15,7 +15,9 @@ export default function MyMelds({ myMeld = [], handleAddToMeld, handleSubmitMeld
 
     return (
         <div className=" w-[60em] max-w-full px-4">
-            <button className="w-full flex flex-wrap  bg-black/30 p-2 gap-2 rounded-sm shadow-xl min-h-30 "
+            <button className="w-full flex flex-wrap  bg-black/70 p-2 gap-2 rounded-sm shadow-xl min-h-40
+                border-2 border-slate-700
+            "
 
                 onClick={() => handleSubmitMelds()}
             >
@@ -36,7 +38,23 @@ export default function MyMelds({ myMeld = [], handleAddToMeld, handleSubmitMeld
                             {meld.map((tile, tIndex) => {
                                 const tileKey = `meld-${mIndex}-tile-${tIndex}-${tile?.color ?? "x"}-${tile?.number ?? "n"}`;
                                 return (
-                                    <div key={tileKey} className="flex items-center justify-center">
+                                    <div 
+                                        key={tileKey} 
+                                        className={`
+                                            flex items-center justify-center 
+                                            // Clases de Tailwind para animación de aparecer:
+                                            // 1. Estado Inicial (oculto/desplazado, se aplica en la primera aparición)
+                                            opacity-0 transform translate-y-2
+                                            // 2. Transición y Duración
+                                            transition-all duration-300 ease-out 
+                                            // 3. Estado Final (opacidad 100%, posición normal)
+                                            data-[visible=true]:opacity-100 data-[visible=true]:translate-y-0
+                                        `}
+                                        // Usamos un estilo dinámico para añadir un retraso secuencial
+                                        style={{ transitionDelay: `${tIndex * 50}ms` }}
+                                        // El atributo data-visible se usa para forzar el estado final
+                                        data-visible={true}
+                                    >
                                         <Tile card={tile} />
                                     </div>
                                 );

@@ -1,7 +1,7 @@
 import React from 'react'
+import * as motion from "motion/react-client"
 
-
-function GamePile({ turnStep, isMyTurn, handleDraw }) {
+function GamePile({ turnStep, isMyTurn, handleDraw, centralPileLength }) {
 
     // Estilo personalizado para simular la profundidad del mazo usando box-shadow
     const deckShadowStyle = {
@@ -18,15 +18,19 @@ function GamePile({ turnStep, isMyTurn, handleDraw }) {
         'transform-gpu origin-center rotate-x-[25deg] rotate-z-[-5deg] ';
 
     return (
-        <div className='flex flex-col items-center hover:cursor-pointer hover:scale-105 duration-200' style={{ perspective: '800px' }}>
+        <motion.div
+            whileHover={{ scale: 1.1 }
+            }
+            whileTap={{ scale: 0.8 }}
+            className='flex flex-col items-center hover:cursor-pointer hover:scale-105 ' style={{ perspective: '800px' }}>
 
             {/* Contenedor del mazo: aplicamos la sombra de volumen y la rotación 3D */}
-            <div
+            < div
                 className={containerClasses}
                 style={deckShadowStyle}
             >
-
-            </div>
+                {centralPileLength}
+            </div >
 
             {/* Botón de acción */}
             {
@@ -39,7 +43,7 @@ function GamePile({ turnStep, isMyTurn, handleDraw }) {
                     </button>
                 )
             }
-        </div >
+        </motion.div >
     )
 }
 

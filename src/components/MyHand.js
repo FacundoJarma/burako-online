@@ -77,6 +77,10 @@ export default function MyHand({ hand = [], onChange = () => { }, onSelectionCha
     /**
      * Lógica de Sincronización de Slots (Persistencia de Posición)
      */
+    // ... (Línea 80 - Dentro de useEffect)
+    /**
+     * Lógica de Sincronización de Slots (Persistencia de Posición)
+     */
     useEffect(() => {
         setSlots(prevSlots => {
             const newUids = new Set(items.map(i => i._uid));
@@ -86,6 +90,7 @@ export default function MyHand({ hand = [], onChange = () => { }, onSelectionCha
             const nextSlots = Array(TOTAL_SLOTS).fill(null);
             const availableSlots = [];
 
+            // 1. Persistir cartas existentes y liberar slots de cartas viejas/eliminadas
             prevSlots.forEach((slot, index) => {
                 if (slot && newUids.has(slot._uid)) {
                     nextSlots[index] = newItemMap.get(slot._uid);
@@ -95,6 +100,7 @@ export default function MyHand({ hand = [], onChange = () => { }, onSelectionCha
                 }
             });
 
+            // 2. Colocar las cartas nuevas en los slots disponibles
             const newItemsToPlace = Array.from(newItemMap.values());
 
             newItemsToPlace.forEach((newItem, i) => {
@@ -104,21 +110,37 @@ export default function MyHand({ hand = [], onChange = () => { }, onSelectionCha
                 }
             });
 
+            // 3. 🛑 PREVENCIÓN DEL BUCLE INFINITO
+            // Comprobamos si la estructura de slots realmente cambió antes de devolver nextSlots.
+            const didSlotsChange = nextSlots.some((slot, index) => {
+                // Compara el _uid, que es la identidad única de la carta
+                return (slot?._uid !== prevSlots[index]?._uid);
+            });
+
+            if (!didSlotsChange) {
+                // Si no hay cambio en la posición/identidad de las cartas, NO actualizar el estado.
+                return prevSlots;
+            }
+
+            // 4. Limpiar la selección de cartas que ya no existen en la mano
             if (!Array.from(oldUids).every(uid => newUids.has(uid))) {
                 setSelectedSet(prevSet => {
                     const nextSet = new Set(prevSet);
+                    let changed = false;
                     prevSet.forEach(uid => {
                         if (!newUids.has(uid)) {
                             nextSet.delete(uid);
+                            changed = true;
                         }
                     });
-                    return nextSet;
+                    if (changed) return nextSet;
+                    return prevSet;
                 });
             }
 
             return nextSlots;
         });
-    }, [items, TOTAL_SLOTS]);
+    }, [items, TOTAL_SLOTS]); // Dependencias correctas para la lógica actual
 
     // notificar cambios de selección al padre (después del render)
     useEffect(() => {

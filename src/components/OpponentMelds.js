@@ -32,7 +32,7 @@ export default function OpponentMelds({ myMeld = [] }) {
                                 const tileKey = `meld-${mIndex}-tile-${tIndex}-${tile?.color ?? "x"}-${tile?.number ?? "n"}`;
                                 return (
                                     <div key={tileKey} className="flex items-center justify-center">
-                                        <Tile card={tile} />
+                                        <Tile card={tile} size="small"/>
                                     </div>
                                 );
                             })}

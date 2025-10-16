@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { redirect, useParams } from "next/navigation";
 import { useGameState } from "@/hooks/UseGameState";
-import { addTilesToMeld, chooseDraw, discardTile, getUserId, passTurn, submitMelds } from "@/utils/gamesManager";
+import { addTilesToMeld, chooseDraw, discardTile, getUserId, goToDeadPile, passTurn, submitMelds } from "@/utils/gamesManager";
 import MyHand from "@/components/MyHand";
 import DiscardPile from "@/components/DiscardPile";
 import GamePile from "@/components/GamePile";
@@ -96,7 +96,7 @@ function StartedGamePage() {
         setLoading((s) => ({ ...s, discard: true }));
         try {
             console.log("selectedCards", selectedCards);
-            await discardTile(gameId, userId, selectedCards[0]);
+            await discardTile(gameId, userId, selectedCards[0], gameState?.myHand);
 
             setSelectedCards([]);
         } catch (e) {
@@ -118,6 +118,11 @@ function StartedGamePage() {
         try {
             await addTilesToMeld(gameId, userId, gameState?.myTeam, meldID, selectedCards);
             setSelectedCards([]);
+
+            if (gameState?.MyHand?.length === 0) {
+                await goToDeadPile(gameId, userId);
+            }
+
         } catch (e) {
             console.error(e);
             setError(e.message);
@@ -131,17 +136,27 @@ function StartedGamePage() {
 
     // === Render principal ===
     return (
-        <div className="min-h-screen flex flex-col items-center justify-start py-8 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white gap-2">
+        <div className="min-h-screen flex flex-col items-center justify-start py-4 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white gap-2">
 
             <div className="flex justify-center gap-5">
-                <div className="flex flex-col gap-10 justify-center mt-12">
+
+                <div className="flex flex-col">
+                    <span>Team 1: {gameState?.points?.team1 ?? 0}</span>
+                    <span>Team 2: {gameState?.points?.team2 ?? 0}</span>
+
+                    <span className="py-0.5 text-xs px-2 rounded-full bg-red-500">
+                        NO realtime
+                    </span>
+                </div>
+
+                <div className="flex flex-col gap-10 justify-center ">
 
                     <OpponentMelds myMeld={gameState?.myTeam == 1 ? gameState?.meldsByTeam[2] : gameState?.meldsByTeam[1] ?? []} />
                     <MyMelds handleSubmitMelds={handleSubmitMelds} handleAddToMeld={handleAddToMeld} myMeld={gameState?.myTeamMelds ?? []} />
 
                 </div>
                 <div className="absolute bottom-12 flex justify-around gap-10 items-center">
-                    <GamePile turnStep={gameState?.turnStep} isMyTurn={isMyTurn} handleDraw={handleDraw} />
+                    <GamePile centralPileLength={gameState?.centralPileLength ?? 0} turnStep={gameState?.turnStep} isMyTurn={isMyTurn} handleDraw={handleDraw} />
                     <MyHand
                         hand={gameState?.myHand ?? []}
                         onChange={() => { }}

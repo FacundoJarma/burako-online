@@ -2,6 +2,7 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
+import { isValidMeld } from "./ValidGame";
 
 export const getUserId = async () => {
     const supabase = await createClient();
@@ -373,6 +374,8 @@ export async function createInitialBurakoState(gameId) {
     const randomIndex = Math.floor(Math.random() * players.length);
     const turnPlayer = players[randomIndex].user_id;
 
+    const points = await getTeamScores(gameId);
+
     return {
         centralPile,
         playerHands,
@@ -383,6 +386,7 @@ export async function createInitialBurakoState(gameId) {
         turnPlayer,
         phase: "playing",
         turnStep: "choose_draw",
+        points,
     };
 }
 
@@ -471,6 +475,7 @@ export async function getPlayerGameState(gameId, userId) {
         turnPlayer: state.turnPlayer,
         phase: state.phase,
         turnStep: state.turnStep,
+        centralPileLength: state.centralPile.length,
     };
 }
 
@@ -528,86 +533,6 @@ export async function chooseDraw(gameId, userId, source = "deck") {
     if (error) throw error;
     return state;
 }
-function isValidMeld(meld) {
-    if (!Array.isArray(meld) || meld.length < 3) return false;
-
-    // Jokers explícitos (color === "joker")
-    const explicitJokers = meld.filter(t => t.color === "joker");
-    if (explicitJokers.length > 1) return false; // regla: máximo 1 comodín explícito
-
-    // Fichas "2" que pueden actuar como comodín opcionalmente
-    const twoTiles = meld.filter(t => t.number === 2 && t.color !== "joker");
-
-    // Helper: prueba si una configuración (nonJokers, jokers) forma un meld válido
-    function validateWith(nonJokers, jokers) {
-        if (!Array.isArray(nonJokers) || nonJokers.length === 0) return false;
-        // valores de las fichas no-comodín
-        const numbers = nonJokers.map(t => t.number);
-        const colors = nonJokers.map(t => t.color);
-        const uniqueColors = new Set(colors.filter(Boolean));
-        const uniqueNumbers = new Set(numbers);
-
-        // ===== ESCALERA =====
-        // Mismo color (entre no-comodines), números consecutivos; los gaps deben poder cubrirse con jokers.length
-        if (uniqueColors.size === 1) {
-            const sortedNums = [...numbers].sort((a, b) => a - b);
-            let gaps = 0;
-            for (let i = 1; i < sortedNums.length; i++) {
-                gaps += sortedNums[i] - sortedNums[i - 1] - 1;
-            }
-            // los jokers pueden cubrir gaps; además la longitud total (nonJokers + jokers) debe ser >= 3
-            return (gaps <= jokers.length) && (nonJokers.length + jokers.length >= 3);
-        }
-
-        // ===== GRUPO =====
-        // Mismo número (entre no-comodines), colores distintos (no repetir color entre no-comodines)
-        if (uniqueNumbers.size === 1) {
-            // máximo 1 comodín (en total) — esta comprobación la garantizamos antes, pero la dejamos para seguridad
-            if (jokers.length > 1) return false;
-            return nonJokers.length + jokers.length >= 3;
-        }
-
-        return false;
-    }
-
-    // 1) Intento sin convertir ningun "2" en comodín (solo jokers explícitos)
-    const nonJokersBase = meld.filter(t => t.color !== "joker");
-    const jokersBase = explicitJokers.slice(); // copia
-    // rechazo rápido si hay más de 1 jokers explícitos (lo chequeamos arriba) o longitud total < 3
-    if (jokersBase.length > 1) return false;
-    if (validateWith(nonJokersBase, jokersBase)) return true;
-
-    // 2) Si falló, y NO hay jokers explícitos, intentamos usar exactamente UNA '2' como comodín (si existe)
-    // Nota: solo intentamos esto si no hay comodín explícito (porque la regla es max 1 comodín por juego/meld)
-    if (explicitJokers.length === 0 && twoTiles.length > 0) {
-        // por cada 2 posible, probamos convertir esa ficha en comodín (pero solo 1 a la vez)
-        for (const twoTile of twoTiles) {
-            // construir nonJokers quitando la ficha twoTile específica
-            const nonJokersAttempt = meld.filter(
-                (t, i) => !(t.number === 2 && t.color === twoTile.color && t !== twoTile)
-            );
-            // la forma segura: crear arrays por índice para quitar exactamente una instancia
-            // mejor: quitar por referencia (si el objeto coincide)
-            const nonJokers = [];
-            let removed = false;
-            for (const t of meld) {
-                if (!removed && t.number === 2 && t.color !== "joker" && t === twoTile) {
-                    removed = true; // esta la usamos como comodín => no la añadimos a nonJokers
-                    continue;
-                }
-                if (t.color !== "joker") nonJokers.push(t);
-            }
-            const jokers = [{ color: "joker", number: null }]; // simulamos un comodín usado (1)
-            // validar
-            if (validateWith(nonJokers, jokers)) return true;
-            // si no, seguimos probando con otra '2'
-        }
-    }
-
-    // si nada funcionó, no es válido
-    return false;
-}
-
 
 export async function submitMelds(gameId, userId, meld = []) {
     const { state, supabase } = await _fetchState(gameId);
@@ -750,15 +675,15 @@ export async function discardTile(gameId, userId, tileIdentifier) {
         .eq("game_id", gameId)
         .order("order_player", { ascending: true });
 
+    if (state.centralPile.length === 0) {
+        endGame(gameId);
+    }
+
     const idx = players.findIndex(p => p.user_id === userId);
-    console.log("idx", idx);
-    console.log("players", players);
     const next = players[(idx + 1) % players.length].user_id;
-    console.log("next", next);
 
     state.turnPlayer = next;
     state.turnStep = "choose_draw"; // 🔥 vuelve al inicio del ciclo
-
 
     const { error } = await supabase.from("game_state").update({ state }).eq("game_id", gameId);
     await supabase
@@ -767,6 +692,11 @@ export async function discardTile(gameId, userId, tileIdentifier) {
         .eq('id', gameId);
 
     if (error) throw error;
+
+    if (state.playerHands[userId].length === 0) {
+        await goToDeadPile(gameId, userId);
+    }
+
     return state;
 }
 
@@ -780,4 +710,298 @@ export async function passTurn(gameId, userId) {
     const { error } = await supabase.from("game_state").update({ state }).eq("game_id", gameId);
     if (error) throw error;
     return state;
+}
+
+function getTileValue(tile) {
+    if (tile.color === "joker") return 50;
+    if (tile.number === 1) return 15;
+    if (tile.number === 2) return 20;
+    if (tile.number >= 3 && tile.number <= 7) return 5;
+    if (tile.number >= 8 && tile.number <= 13) return 10;
+    return 0;
+}
+
+/**
+ * Determina si un meld es un Burako (7 o más fichas).
+ * Retorna 200 (Limpio), 100 (Sucio) o 0 (No Burako).
+ */
+function checkBurakoType(meld) {
+    if (meld.length < 7) return 0;
+
+    // 1. Verificar comodín explícito (Joker)
+    const explicitJokers = meld.filter(t => t.color === "joker");
+    if (explicitJokers.length > 0) return 100; // Si hay Joker, es Sucio.
+
+    const twoTiles = meld.filter(t => t.number === 2);
+
+    if (twoTiles.length > 0) {
+
+        const nonWildNumbers = meld
+            .filter(t => t.number !== 2 && t.color !== 'joker')
+            .map(t => t.number);
+
+
+        const uniqueNonWildNumbers = new Set(nonWildNumbers);
+        if (uniqueNonWildNumbers.size > 1) {
+            const hasThree = nonWildNumbers.includes(3);
+
+            if (!hasThree) {
+                return 100;
+            }
+
+            return 200;
+
+        } else if (uniqueNonWildNumbers.size === 1 && twoTiles.length > 0) {
+
+            return 100;
+        }
+
+        const colors = meld.map(t => t.color).filter(c => c !== 'joker');
+        const uniqueColors = new Set(colors);
+
+        if (uniqueColors.size === 1) {
+            // Es una escalera. Si tiene un '2' y un '3', el '2' no es un comodín
+            const hasThree = meld.some(t => t.number === 3);
+            if (hasThree) {
+                // El '2' está en su lugar A-2-3..., y no hay Joker explícito.
+                return 200;
+            }
+        }
+    }
+
+    return 200;
+}
+
+function calculateMeldsScore(melds) {
+    let baseValue = 0;
+    let bonus = 0;
+
+    for (const meld of melds) {
+        if (Array.isArray(meld)) {
+            for (const tile of meld) {
+                baseValue += getTileValue(tile);
+            }
+            bonus += checkBurakoType(meld);
+        }
+    }
+    return { baseValue, bonus };
+}
+
+
+export async function endGame(gameId, teamThatClosed) {
+    const supabase = await createClient();
+    const { state: currentState } = await _fetchState(gameId);
+
+    // 1️⃣ Obtener la configuración del juego (puntos acumulados, maxPoints, participantes)
+    const { data: gameRow, error: gameErr } = await supabase
+        .from("games")
+        .select("points_team_1, points_team_2, points, participants")
+        .eq("id", gameId)
+        .maybeSingle();
+
+    if (gameErr || !gameRow) throw new Error("No se pudo obtener la información de la partida para finalizar el juego");
+
+    const maxPoints = gameRow.points;
+    const currentPointsTeam1 = gameRow.points_team_1 || 0;
+    const currentPointsTeam2 = gameRow.points_team_2 || 0;
+    const deadSize = gameRow.participants === 2 ? 22 : 11;
+
+    // 2️⃣ Calcular puntajes de melds y bonificaciones por Burako
+    const score1 = calculateMeldsScore(currentState.melds[1] || []);
+    const score2 = calculateMeldsScore(currentState.melds[2] || []);
+
+    // 3️⃣ Calcular puntos negativos de fichas en mano
+    let negativePointsTeam1 = 0;
+    let negativePointsTeam2 = 0;
+    const players = await getOrderedPlayers(gameId);
+
+    for (const player of players) {
+        const hand = currentState.playerHands[player.user_id] || [];
+        const handValue = hand.reduce((sum, tile) => sum + getTileValue(tile), 0);
+
+        if (player.team === 1) negativePointsTeam1 += handValue;
+        if (player.team === 2) negativePointsTeam2 += handValue;
+    }
+
+    // 4️⃣ Bonificaciones y Penalizaciones
+    let closingBonusTeam1 = 0;
+    let closingBonusTeam2 = 0;
+    let deadPenaltyTeam1 = 0;
+    let deadPenaltyTeam2 = 0;
+
+    // Bonificación por "Cierre" (+100 puntos)
+    if (teamThatClosed === 1) closingBonusTeam1 = 100;
+    if (teamThatClosed === 2) closingBonusTeam2 = 100;
+
+    // Penalización por "Muerto sin tocar" (-100 puntos)
+    const isDeadTakenTeam1 = (currentState.teamReserves[1] || []).length < deadSize;
+    const isDeadTakenTeam2 = (currentState.teamReserves[2] || []).length < deadSize;
+
+    if (!isDeadTakenTeam1 && teamThatClosed !== 1) deadPenaltyTeam1 = 100;
+    if (!isDeadTakenTeam2 && teamThatClosed !== 2) deadPenaltyTeam2 = 100;
+
+    // 5️⃣ Sumar el total de la mano ANTES de aplicar la penalización por "Sin Burako"
+
+    // Puntos Positivos Acumulados (Melds + Bonificaciones)
+    let positiveScore1 = score1.baseValue + score1.bonus + closingBonusTeam1;
+    let positiveScore2 = score2.baseValue + score2.bonus + closingBonusTeam2;
+
+    // APLICACIÓN DE LA REGLA: SIN BURAKO
+    // Si el bonus total del equipo es 0, significa que no hizo ningún Burako.
+    if (score1.bonus === 0) {
+        // El equipo 1 no hizo Burako. Sus puntos positivos se vuelven negativos.
+        positiveScore1 = -positiveScore1;
+    }
+    if (score2.bonus === 0) {
+        // El equipo 2 no hizo Burako. Sus puntos positivos se vuelven negativos.
+        positiveScore2 = -positiveScore2;
+    }
+
+    // 6️⃣ Sumar el total de la mano (Positivos/Negativos de Melds - Puntos en Mano - Penalización Muerto)
+    const handScoreTeam1 = positiveScore1 - negativePointsTeam1 - deadPenaltyTeam1;
+    const handScoreTeam2 = positiveScore2 - negativePointsTeam2 - deadPenaltyTeam2;
+
+    // Se corrigen las penalizaciones/negativos si la regla 'Sin Burako' lo exige:
+    // La penalización del muerto y los puntos en mano SIEMPRE son negativos.
+    // Lo que se vuelve negativo es el valor de las fichas bajadas (positiveScore).
+
+    const newTotalPointsTeam1 = currentPointsTeam1 + handScoreTeam1;
+    const newTotalPointsTeam2 = currentPointsTeam2 + handScoreTeam2;
+
+    // 7️⃣ Actualizar puntajes y estado a "scoring"
+    const { error: updateError } = await supabase
+        .from("games")
+        .update({
+            points_team_1: newTotalPointsTeam1,
+            points_team_2: newTotalPointsTeam2,
+            status: "scoring",
+        })
+        .eq("id", gameId);
+
+    if (updateError) throw updateError;
+
+    // 8️⃣ Chequear si algún equipo ganó la partida
+    if (newTotalPointsTeam1 >= maxPoints || newTotalPointsTeam2 >= maxPoints) {
+        const winner = newTotalPointsTeam1 >= maxPoints ? 1 : 2;
+        await supabase.from("games").update({ status: "finished" }).eq("id", gameId);
+        return {
+            status: "finished",
+            winner,
+            score: { 1: newTotalPointsTeam1, 2: newTotalPointsTeam2 }
+        };
+    }
+
+    // 9️⃣ Reiniciar el juego para la próxima mano (Nuevo Estado Inicial)
+    const newInitialState = await createInitialBurakoState(gameId);
+
+    const { error: upsertErr } = await supabase.from("game_state").upsert({
+        game_id: gameId,
+        state: newInitialState,
+    });
+    if (upsertErr) throw upsertErr;
+
+    const { error: turnErr } = await supabase
+        .from("games")
+        .update({
+            turn_player: newInitialState.turnPlayer,
+            status: "playing",
+        })
+        .eq("id", gameId);
+    if (turnErr) throw turnErr;
+
+    return {
+        status: "new_hand",
+        score: { 1: newTotalPointsTeam1, 2: newTotalPointsTeam2 },
+        handScore: { 1: handScoreTeam1, 2: handScoreTeam2 },
+        newState: newInitialState
+    };
+}
+export async function goToDeadPile(gameId, userId) {
+    const { state, supabase } = await _fetchState(gameId);
+
+
+    // 1️⃣ Obtener el equipo del jugador
+    const { data: playerRow, error: playerErr } = await supabase
+        .from("game_players")
+        .select("team")
+        .eq("game_id", gameId)
+        .eq("user_id", userId)
+        .maybeSingle();
+
+    if (playerErr) throw playerErr;
+    if (!playerRow) throw new Error("El usuario no pertenece a la partida");
+
+    const team = playerRow.team;
+    const deadPile = state.teamReserves[team] || [];
+
+    // 2️⃣ Validar si el jugador ha vaciado su mano (requisito para ir al muerto)
+    const playerHand = state.playerHands[userId] || [];
+    if (playerHand.length > 0) {
+        throw new Error("Debes quedarte sin fichas en la mano antes de ir al muerto");
+    }
+
+    // 3️⃣ Validar si el equipo ya tomó la reserva (REGLA DE FIN DE PARTIDA)
+    // Si deadPile está vacío, significa que el equipo ya tomó la reserva.
+    if (deadPile.length === 0) {
+        // El equipo ya tomó la reserva. Esto significa que el jugador está "cerrando" por segunda vez.
+        // La partida debe terminar inmediatamente y el equipo contrario debe recibir la bonificación por cierre.
+
+        const winningTeam = team === 1 ? 2 : 1; // El equipo contrario gana la mano.
+
+        // Llamamos a endGame con el equipo ganador de la mano.
+        const result = await endGame(gameId, winningTeam);
+
+        // El estado de la partida ya fue actualizado dentro de endGame (new_hand o finished)
+        return {
+            action: "game_ended",
+            message: `El equipo ${team} intentó ir al muerto por segunda vez. La partida termina y el Equipo ${winningTeam} gana la mano.`,
+            result
+        };
+
+    }
+
+    // 4️⃣ Transferir la reserva del equipo a la mano del jugador
+
+    // Añadir las fichas a la mano del jugador
+    state.playerHands[userId].push(...deadPile);
+
+    // Vaciar la reserva del equipo (marcando que fue tomada)
+    state.teamReserves[team] = [];
+
+    // 5️⃣ Actualizar el estado del juego
+    // El turno NO CAMBIA, y el paso del turno se mantiene en "melds" para que el jugador pueda jugar las fichas del muerto.
+
+    const { error } = await supabase.from("game_state").update({ state }).eq("game_id", gameId);
+    if (error) throw error;
+
+    return {
+        action: "dead_pile_taken",
+        message: `¡Te has ido al muerto! Tienes ${deadPile.length} fichas nuevas.`,
+        newState: state
+    };
+}
+
+export async function getTeamScores(gameId) {
+    const supabase = await createClient();
+
+    const { data: gameRow, error: gameErr } = await supabase
+        .from("games")
+        .select("points_team_1, points_team_2")
+        .eq("id", gameId)
+        .maybeSingle();
+
+    if (gameErr) {
+        throw new Error(`Error al consultar puntajes: ${gameErr.message}`);
+    }
+
+    if (!gameRow) {
+        // Esto podría ocurrir si el gameId no existe
+        throw new Error(`Partida con ID ${gameId} no encontrada.`);
+    }
+
+    // Retorna los puntajes, usando 0 si aún no están inicializados (primera mano)
+    return {
+        team1: gameRow.points_team_1 || 0,
+        team2: gameRow.points_team_2 || 0,
+    };
 }
