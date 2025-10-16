@@ -13,6 +13,8 @@ export default function MyHand({ hand = [], onChange = () => { }, onSelectionCha
     const TOTAL_ROWS = 3;
     const TOTAL_SLOTS = TOTAL_COLS * TOTAL_ROWS; // 33
 
+    // ... (Lógica de UIDs y Sincronización de Slots sin cambios) ...
+
     // UIDs estables por carta (si ya tiene id usamos id, si no generamos)
     const uidMapRef = useRef(new Map());
     useEffect(() => {
@@ -74,34 +76,25 @@ export default function MyHand({ hand = [], onChange = () => { }, onSelectionCha
 
     /**
      * Lógica de Sincronización de Slots (Persistencia de Posición)
-     * Cuando 'items' (hand con _uid) cambia:
      */
     useEffect(() => {
         setSlots(prevSlots => {
             const newUids = new Set(items.map(i => i._uid));
             const oldUids = new Set(prevSlots.filter(Boolean).map(s => s._uid));
 
-            // 1. Crear un mapa de las nuevas fichas por UID
             const newItemMap = new Map(items.map(item => [item._uid, item]));
-
-            // 2. Mapear las fichas existentes a sus posiciones anteriores
             const nextSlots = Array(TOTAL_SLOTS).fill(null);
             const availableSlots = [];
 
-            // Fichas persistentes y lista de huecos
             prevSlots.forEach((slot, index) => {
                 if (slot && newUids.has(slot._uid)) {
-                    // Mantener ficha existente en su posición
                     nextSlots[index] = newItemMap.get(slot._uid);
-                    // Eliminar del mapa de nuevas, ya fue colocada
                     newItemMap.delete(slot._uid);
                 } else {
-                    // Si el slot estaba vacío o la ficha fue quitada, es un hueco
                     availableSlots.push(index);
                 }
             });
 
-            // 3. Colocar fichas nuevas en los primeros huecos disponibles
             const newItemsToPlace = Array.from(newItemMap.values());
 
             newItemsToPlace.forEach((newItem, i) => {
@@ -111,8 +104,6 @@ export default function MyHand({ hand = [], onChange = () => { }, onSelectionCha
                 }
             });
 
-            // 4. Limpiar selección si alguna carta desaparece
-            // CORRECCIÓN: Usar Array.from() para invocar .every() en el Set 'oldUids'.
             if (!Array.from(oldUids).every(uid => newUids.has(uid))) {
                 setSelectedSet(prevSet => {
                     const nextSet = new Set(prevSet);
@@ -127,7 +118,7 @@ export default function MyHand({ hand = [], onChange = () => { }, onSelectionCha
 
             return nextSlots;
         });
-    }, [items, TOTAL_SLOTS]); // items es el array de cartas entrantes con _uid
+    }, [items, TOTAL_SLOTS]);
 
     // notificar cambios de selección al padre (después del render)
     useEffect(() => {
@@ -230,12 +221,18 @@ export default function MyHand({ hand = [], onChange = () => { }, onSelectionCha
     const isMySlotSelected = (card) => (card ? selectedSet.has(card._uid) : false);
 
     return (
-        <div className="p-2 rounded-xl border border-slate-800 w-[25em]">
+
+        <div className="w-[25em] perspective-midrange">
             <div
-                className="grid gap-2"
+                className="grid gap-2 transform-gpu origin-bottom rotate-x-[25deg] shadow-xl shadow-slate-900 rounded-xl bg-black/60 p-2"
                 style={{
                     gridTemplateColumns: `repeat(${TOTAL_COLS}, minmax(0, 1fr))`,
                     gridTemplateRows: `repeat(${TOTAL_ROWS}, 1fr)`,
+                    // Esencial para que los hijos hereden el espacio 3D.
+                    transformStyle: 'preserve-3d',
+                    // Añadimos un pequeño margen para que la rotación 3D no recorte el borde inferior/derecho
+                    marginBottom: '60px',
+                    marginLeft: '10px'
                 }}
             >
                 {slots.map((card, index) => {

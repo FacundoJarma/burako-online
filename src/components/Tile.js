@@ -31,13 +31,13 @@ export default function Tile({
         yellow: "text-yellow-700",
         blue: "text-blue-700",
         black: "text-slate-900",
-        joker: "bg-gradient-to-br from-purple-600 via-pink-500 to-yellow-400 text-white",
+        joker: "text-white",
     };
 
     const isEmpty = !card;
     const baseCls = card
         ? colorClasses[card?.color] ?? "bg-slate-900/50 border-slate-800 text-white"
-        : "bg-transparent border-dashed border-slate-700";
+        : "border bg-transparent border-dashed border-slate-200";
 
     const display = card?.number ?? (card ? "🃏" : "");
     const title = card
@@ -61,7 +61,7 @@ export default function Tile({
             onClick={() => onClick && onClick(index)}
             title={title}
             aria-label={title}
-            className={`w-7 --font-lexend-sans flex justify-center items-center  h-10 text-lg font-bold rounded-sm select-none border bg-[#eddbaf] ${baseCls} ${isEmpty ? "opacity-40" : "cursor-grab"
+            className={`w-7 --font-lexend-sans flex justify-center items-center  h-10 text-lg font-bold rounded-sm select-none  bg-[#eddbaf] ${baseCls} ${isEmpty ? "opacity-40" : "cursor-grab"
                 } ${selectionCls} ${dragOverCls}`}
         >
             {display}

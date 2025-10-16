@@ -13,8 +13,8 @@ export default function OpponentMelds({ myMeld = [] }) {
     }, [myMeld]);
 
     return (
-        <div className="absolute top-40 left-1/2 transform -translate-x-1/2 w-[40em] max-w-full px-4">
-            <div className="flex flex-wrap  bg-black/30 p-2 gap-2 rounded-lg shadow-xl min-h-20">
+        <div className="w-[40em] max-w-full px-4 m-auto">
+            <div className="flex flex-wrap  bg-black/30 p-2 gap-2 rounded-sm shadow-xl min-h-20">
 
                 {orderedMelds.length === 0 && (
                     <p className="text-gray-500 italic p-2">No se han bajado fichas.</p>

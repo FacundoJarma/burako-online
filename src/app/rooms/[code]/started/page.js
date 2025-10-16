@@ -134,9 +134,12 @@ function StartedGamePage() {
         <div className="min-h-screen flex flex-col items-center justify-start py-8 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white gap-2">
 
             <div className="flex justify-center gap-5">
-                <OpponentMelds myMeld={gameState?.myTeam == 1 ? gameState?.meldsByTeam[2] : gameState?.meldsByTeam[1] ?? []} />
-                <MyMelds handleSubmitMelds={handleSubmitMelds} handleAddToMeld={handleAddToMeld} myMeld={gameState?.myTeamMelds ?? []} />
+                <div className="flex flex-col gap-10 justify-center mt-12">
 
+                    <OpponentMelds myMeld={gameState?.myTeam == 1 ? gameState?.meldsByTeam[2] : gameState?.meldsByTeam[1] ?? []} />
+                    <MyMelds handleSubmitMelds={handleSubmitMelds} handleAddToMeld={handleAddToMeld} myMeld={gameState?.myTeamMelds ?? []} />
+
+                </div>
                 <div className="absolute bottom-12 flex justify-around gap-10 items-center">
                     <GamePile turnStep={gameState?.turnStep} isMyTurn={isMyTurn} handleDraw={handleDraw} />
                     <MyHand
@@ -155,6 +158,12 @@ function StartedGamePage() {
             {isMyTurn && (
                 <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 py-2 px-4 bg-green-600/20 border border-green-700 rounded-xl text-center font-semibold">
                     ¡Es tu turno!
+                </div>
+            )}
+
+            {!isMyTurn && (
+                <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 py-2 px-4 bg-yellow-600/20 border border-yellow-700 rounded-xl text-center font-semibold">
+                    Esperando a tu oponente!
                 </div>
             )}
         </div>

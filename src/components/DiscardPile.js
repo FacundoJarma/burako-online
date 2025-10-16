@@ -4,14 +4,13 @@ import Tile from './Tile'
 function DiscardPile({ discardPile, turnStep, isMyTurn, handleDraw, handleDiscard }) {
 
     return (
-        <div>
-
+        <div className='perspective-midrange'>
             <button
 
-
                 className={`
+                    transform-gpu origin-bottom rotate-x-[25deg] -rotate-y-10 rotate-z-5
             ${isMyTurn && turnStep === 'choose_draw' || turnStep === 'melds' ? 'hover:cursor-pointer hover:scale-105' : 'cursor-not-allowed'}
-            grid grid-cols-4 grid-rows-4 w-[10em] min-h-48 border border-slate-800 p-2 rounded-2xl gap-2`}
+            grid grid-cols-4 grid-rows-4 w-[10em] min-h-48  p-2 rounded-2xl gap-2 bg-black/40 duration-100`}
 
                 onClick={
                     isMyTurn &&
