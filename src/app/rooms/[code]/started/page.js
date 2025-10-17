@@ -8,6 +8,7 @@ import DiscardPile from "@/components/DiscardPile";
 import GamePile from "@/components/GamePile";
 import MyMelds from "@/components/MyMelds";
 import OpponentMelds from "@/components/OpponentMelds";
+import HandwrittenPaper from "@/components/HandWrittenPoints";
 
 function StartedGamePage() {
     const params = useParams();
@@ -134,19 +135,40 @@ function StartedGamePage() {
     }
 
 
+    if(!gameState){
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-start py-4 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white gap-2">
+                <span className="font-bold text-xl text-white mb-8">
+                    Cargando partida...
+                </span>
+            </div>
+        );
+    }
+
     // === Render principal ===
     return (
         <div className="min-h-screen flex flex-col items-center justify-start py-4 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white gap-2">
 
             <div className="flex justify-center gap-5">
 
-                <div className="flex flex-col">
-                    <span>Team 1: {gameState?.points?.team1 ?? 0}</span>
-                    <span>Team 2: {gameState?.points?.team2 ?? 0}</span>
+                <HandwrittenPaper>
+                    <div className="flex flex-col ">
+                        <span className="font-bold text-xl text-black mb-8">
+                            Turno de: {gameState?.turnPlayerUsername}
+                        </span>
 
-                    <span className="py-0.5 text-xs px-2 rounded-full bg-red-500">
-                        NO realtime
-                    </span>
+                        <span className="font-bold text-lg">Team 1: {gameState?.points?.team1 ?? 0}</span>
+                        <span className="font-bold text-lg">Team 2: {gameState?.points?.team2 ?? 0}</span>
+
+                        <span className="font-bold text-lg italic text-red-500">
+                            NO realtime
+                        </span>
+
+                    </div>
+                </HandwrittenPaper>
+
+                <div className="flex flex-col">
+
                 </div>
 
                 <div className="flex flex-col gap-10 justify-center ">

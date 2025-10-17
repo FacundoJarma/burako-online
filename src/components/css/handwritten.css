@@ -1,0 +1,38 @@
+@import url('https://fonts.googleapis.com/css2?family=Indie+Flower&display=swap');
+
+.handwritten-paper {
+  position: absolute;
+  bottom: -50vh;
+  width: 200px;
+  height: 290px;
+  background:
+    repeating-linear-gradient(white 0px, white 27px, rgba(173, 216, 230, 0.6) 29px),
+    url("https://www.transparenttextures.com/patterns/paper-fibers.png");
+  background-size: auto, 300px 300px;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  padding: 2.2rem 1rem 1rem 2rem;
+  line-height: 28px;
+  font-family: 'Indie Flower', cursive;
+  font-size: 1rem;
+  color: #374151;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transform: rotate(-1deg);
+  backdrop-filter: brightness(1.02);
+
+  transform: rotateX(25deg) rotateZ(-5deg);
+  transform-origin: center;
+  transform-style: preserve-3d;
+  perspective: 1000px;
+}
+
+/* Margen rojo */
+.handwritten-paper::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 25px;
+  width: 2px;
+  background: #ff6961;
+}

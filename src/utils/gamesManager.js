@@ -427,11 +427,11 @@ export async function startGame(gameId) {
 
     return initialState;
 }
-
 // ====================== ESTADO DE UN JUGADOR ======================
 export async function getPlayerGameState(gameId, userId) {
     const supabase = await createClient();
 
+    // 1️⃣ Obtenemos el estado de la partida
     const { data: stateRow, error: stateErr } = await supabase
         .from("game_state")
         .select("state")
@@ -445,8 +445,10 @@ export async function getPlayerGameState(gameId, userId) {
     if (!stateRow || !stateRow.state) {
         redirect("/");
     }
+
     const state = stateRow.state;
-    console.log("state", state);
+
+    // 2️⃣ Obtenemos los datos del jugador actual (equipo)
     const { data: playerRow, error: playerErr } = await supabase
         .from("game_players")
         .select("team")
@@ -464,15 +466,51 @@ export async function getPlayerGameState(gameId, userId) {
 
     const team = playerRow.team;
 
-    // devolvemos melds por equipo (y también la lista completa si hace falta)
+    // 3️⃣ Obtenemos el username del jugador actual
+    const { data: userRow, error: userErr } = await supabase
+        .from("users")
+        .select("username")
+        .eq("id", userId)
+        .maybeSingle();
+
+    if (userErr) {
+        console.error("Error obteniendo username del jugador:", userErr);
+        throw userErr;
+    }
+    if (!userRow) {
+        throw new Error("No se encontró el usuario");
+    }
+
+    const username = userRow.username;
+
+    // 4️⃣ Obtenemos el username del turno actual
+    let turnPlayerUsername = state.turnPlayer;
+    if (state.turnPlayer) {
+        const { data: turnRow, error: turnErr } = await supabase
+            .from("users")
+            .select("username")
+            .eq("id", state.turnPlayer)
+            .maybeSingle();
+
+        if (turnErr) {
+            console.error("Error obteniendo username del turno:", turnErr);
+            throw turnErr;
+        }
+        if (turnRow) {
+            turnPlayerUsername = turnRow.username;
+        }
+    }
+
+    // 5️⃣ Devolvemos el estado
     return {
-        myPlayerId: userId,
+        myPlayerId: userId,          // username del jugador actual
         myTeam: team,
         myHand: state.playerHands ? state.playerHands[userId] || [] : [],
-        meldsByTeam: state.melds || { 1: [], 2: [] }, // formato: {1: [meld, ...], 2: [meld, ...]}
+        meldsByTeam: state.melds || { 1: [], 2: [] },
         myTeamMelds: (state.melds && state.melds[team]) || [],
         discardPile: state.discardPile || [],
         turnPlayer: state.turnPlayer,
+        turnPlayerUsername: turnPlayerUsername, // username del jugador cuyo turno es
         phase: state.phase,
         turnStep: state.turnStep,
         centralPileLength: state.centralPile.length,

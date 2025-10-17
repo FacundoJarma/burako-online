@@ -15,7 +15,7 @@ function GamePile({ turnStep, isMyTurn, handleDraw, centralPileLength }) {
 
     const containerClasses =
         'ml-12 w-24 h-40 bg-black/20 rounded-lg text-6xl grid place-content-center border-2 border-slate-700 ' +
-        'transform-gpu origin-center rotate-x-[25deg] rotate-z-[-5deg] ';
+        'transform-gpu origin-center rotate-x-[25deg] rotate-z-[-5deg] bg-slate-900';
 
     return (
         <motion.div
