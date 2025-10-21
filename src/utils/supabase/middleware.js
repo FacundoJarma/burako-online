@@ -32,11 +32,13 @@ export async function updateSession(request) {
         data: { user },
     } = await supabase.auth.getUser()
 
+    // Agregar '/register' a la lista de rutas permitidas
     if (
         !user &&
         !request.nextUrl.pathname.startsWith('/login') &&
         !request.nextUrl.pathname.startsWith('/auth') &&
-        !request.nextUrl.pathname.startsWith('/error')
+        !request.nextUrl.pathname.startsWith('/error') &&
+        !request.nextUrl.pathname.startsWith('/register') // Permitir /register
     ) {
         const url = request.nextUrl.clone()
         url.pathname = '/login'
