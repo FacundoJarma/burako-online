@@ -47,6 +47,8 @@ function StartedGamePage() {
     // === 1️⃣ Robar carta ===
     async function handleDraw(source) {
         if (!isMyTurn || gameState?.turnStep !== "choose_draw") return;
+        if(loading.draw) return;
+        
         console.log("handleDraw", source);
         setError(null);
         setLoading((s) => ({ ...s, draw: true }));
@@ -66,8 +68,9 @@ function StartedGamePage() {
     // === 2️⃣ Bajar melds ===
     async function handleSubmitMelds() {
         if (!isMyTurn || gameState?.turnStep !== "melds") return;
+        if(loading.meld) return;
         if (!selectedCards?.length) {
-            setError("Seleccioná al menos una ficha para bajar o presioná 'Pasar'.");
+            setError("Seleccioná al menos una ficha para bajar.");
             return;
         }
         setError(null);
@@ -89,6 +92,7 @@ function StartedGamePage() {
     // === 3️⃣ Descartar ===
     async function handleDiscard() {
         if (!isMyTurn || gameState?.turnStep !== "melds") return;
+        if(loading.discard) return;
         if (selectedCards.length !== 1) {
             setError("Seleccioná exactamente 1 ficha para descartar.");
             return;
