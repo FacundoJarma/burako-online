@@ -614,8 +614,14 @@ export async function submitMelds(gameId, userId, meld = []) {
 
     state.playerHands[userId] = hand;
 
+
     const { error } = await supabase.from("game_state").update({ state }).eq("game_id", gameId);
     if (error) throw error;
+
+    if (state.playerHands[userId].length === 0) {
+        await goToDeadPile(gameId, userId);
+    }
+
     return state;
 }
 
