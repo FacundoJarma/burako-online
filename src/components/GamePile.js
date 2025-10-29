@@ -18,7 +18,14 @@ function GamePile({ turnStep, isMyTurn, handleDraw, centralPileLength }) {
         'transform-gpu origin-center rotate-x-[25deg] rotate-z-[-5deg] bg-slate-900';
 
     return (
-        <motion.div
+        <motion.button
+            onClick={
+                isMyTurn && turnStep === 'choose_draw' ?
+                    () => handleDraw("deck")
+                    :
+                    () => { }
+            }
+
             whileHover={{ scale: 1.1 }
             }
             whileTap={{ scale: 0.8 }}
@@ -32,18 +39,8 @@ function GamePile({ turnStep, isMyTurn, handleDraw, centralPileLength }) {
                 {centralPileLength}
             </div >
 
-            {/* Botón de acción */}
-            {
-                isMyTurn && turnStep === 'choose_draw' && (
-                    <button
-                        onClick={() => handleDraw("deck")}
-                        className="mt-12 hover:cursor-pointer text-sm w-full bg-slate-800 text-white py-2 rounded-lg font-bold hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2 transition-all"
-                    >
-                        Agarrar
-                    </button>
-                )
-            }
-        </motion.div >
+
+        </motion.button >
     )
 }
 

@@ -47,8 +47,8 @@ function StartedGamePage() {
     // === 1️⃣ Robar carta ===
     async function handleDraw(source) {
         if (!isMyTurn || gameState?.turnStep !== "choose_draw") return;
-        if(loading.draw) return;
-        
+        if (loading.draw) return;
+
         console.log("handleDraw", source);
         setError(null);
         setLoading((s) => ({ ...s, draw: true }));
@@ -68,7 +68,7 @@ function StartedGamePage() {
     // === 2️⃣ Bajar melds ===
     async function handleSubmitMelds() {
         if (!isMyTurn || gameState?.turnStep !== "melds") return;
-        if(loading.meld) return;
+        if (loading.meld) return;
         if (!selectedCards?.length) {
             setError("Seleccioná al menos una ficha para bajar.");
             return;
@@ -92,7 +92,7 @@ function StartedGamePage() {
     // === 3️⃣ Descartar ===
     async function handleDiscard() {
         if (!isMyTurn || gameState?.turnStep !== "melds") return;
-        if(loading.discard) return;
+        if (loading.discard) return;
         if (selectedCards.length !== 1) {
             setError("Seleccioná exactamente 1 ficha para descartar.");
             return;
@@ -139,7 +139,7 @@ function StartedGamePage() {
     }
 
 
-    if(!gameState){
+    if (!gameState) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-start py-4 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white gap-2">
                 <span className="font-bold text-xl text-white mb-8">
@@ -151,7 +151,17 @@ function StartedGamePage() {
 
     // === Render principal ===
     return (
-        <div className="min-h-screen flex flex-col items-center justify-start py-4 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white gap-2">
+        <div className="min-h-screen flex flex-col items-center justify-start py-4 bg-gradient-to-b from-gray-950 to-gray-800 text-white gap-2">
+
+            {
+                loading.draw || loading.meld || loading.discard ?
+                    <div className="fixed flex flex-col items-center justify-center p-2 bg-black rounded-sm">
+                        <span className="font-bold text-xl text-white">
+                            Cargando
+                        </span>
+                    </div>
+                    : null
+            }
 
             <div className="flex justify-center gap-5">
 
@@ -175,7 +185,7 @@ function StartedGamePage() {
 
                 </div>
 
-                <div className="flex flex-col gap-10 justify-center ">
+                <div className="flex flex-col gap-10 justify-center pt-4 ">
 
                     <OpponentMelds myMeld={gameState?.myTeam == 1 ? gameState?.meldsByTeam[2] : gameState?.meldsByTeam[1] ?? []} />
                     <MyMelds handleSubmitMelds={handleSubmitMelds} handleAddToMeld={handleAddToMeld} myMeld={gameState?.myTeamMelds ?? []} />

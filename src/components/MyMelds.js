@@ -14,11 +14,8 @@ export default function MyMelds({ myMeld = [], handleAddToMeld, handleSubmitMeld
     }, [myMeld]);
 
     return (
-        <div className=" w-[60em] max-w-full px-4">
-            <button className="w-full flex flex-wrap  bg-black/70 p-2 gap-2 rounded-sm shadow-xl min-h-40
-                border-2 border-slate-700
-            "
-
+        <div className=" w-[60em] max-w-full px-4 perspective-midrange">
+            <button className="w-full flex flex-wrap gap-2 rounded-sm min-h-40 p-2 bg-black/20 transform-gpu origin-bottom rotate-x-[20deg] "
                 onClick={() => handleSubmitMelds()}
             >
 
@@ -33,7 +30,13 @@ export default function MyMelds({ myMeld = [], handleAddToMeld, handleSubmitMeld
                         <button
                             onClick={() => handleAddToMeld(mIndex)}
                             key={meldKey}
-                            className="flex items-center gap-1 p-1 h-fit rounded-md border-2 border-dashed border-slate-700 duration-100 hover:cursor-pointer hover:scale-105"
+                            className={`flex items-center gap-1 p-1 h-fit rounded-md border-2 
+                                 duration-100 hover:cursor-pointer hover:scale-105
+                                 ${
+                                     meld.length >= 7
+                                         ? "border-1 border-green-900"
+                                         : "border-dashed border-slate-700"
+                                 }`}
                         >
                             {meld.map((tile, tIndex) => {
                                 const tileKey = `meld-${mIndex}-tile-${tIndex}-${tile?.color ?? "x"}-${tile?.number ?? "n"}`;
